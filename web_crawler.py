@@ -54,16 +54,10 @@ class CFDA_crawler():
         # close the pop-up window
         self.driver.find_element(
             By.XPATH, "/html/body/div[4]/div/div[5]/a[1]").click()
-        '''test
-        target = self.driver.find_elements(
-            By.CLASS_NAME, "video-card__info")
-        for i in target:
-            print(i.text)
-        '''
         # click the target database
-        choice1 = self.driver.find_element(
+        target_db = self.driver.find_element(
             By.XPATH, "/html/body/div/main/div[2]/div[2]/div[1]/div[1]/div[10]/a/span")
-        self.driver.execute_script("arguments[0].click();", choice1)
+        self.driver.execute_script("arguments[0].click();", target_db)
         # use the search bar and clink
         search_box = self.driver.find_element(
             By.XPATH, "/html/body/div/main/div[1]/div[7]/div/div[2]/input")
@@ -80,9 +74,9 @@ class CFDA_crawler():
         self.driver.find_element(
             By.XPATH, "/html/body/div[5]/div/div[5]/a[1]").click()
         # adjust the number of lines it displays
-        choice2 = self.driver.find_element(
+        drop_down_menu = self.driver.find_element(
             By.XPATH, "/html/body/div[1]/div[3]/div[3]/div/div/span[2]/div/div[1]/span")
-        self.driver.execute_script("arguments[0].click();", choice2)
+        self.driver.execute_script("arguments[0].click();", drop_down_menu)
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(
             (By.XPATH, "/html/body/div[3]/div[1]/div[1]/ul/li[2]/span")))
         time.sleep(2)
@@ -94,8 +88,6 @@ class CFDA_crawler():
         self.open_webpage()
         flag = True
         info = []
-        company = []
-        production_name = []
         original_window = self.driver.current_window_handle
         for i in range(0, 2):
             details = self.driver.find_elements(
@@ -104,34 +96,24 @@ class CFDA_crawler():
             for detailed_page in details:
                 detailed_page.click()
                 # WebDriverWait(self.driver, 10).until()
+                
+                # need to be optimized
+                # 
+                # 
                 time.sleep(10)
+                # switch to the detailed page
                 self.driver.switch_to.window(self.driver.window_handles[-1])
+                # get the data
                 content = self.driver.find_elements(
                     By.XPATH, "//td[@class='el-table_1_column_2 is-left ']")
                 for i in content:
                     info.append(i.text)
                     print(i.text)
-                info.pop()
-                # store the data immediately
+                # store the data to database immediately
                 self.save_in_db(info)
                 info = []
+                # close and then back to the original page
                 self.close_window(original_window)
-            '''
-            # acquire data
-            column_2_content = self.driver.find_elements(
-                By.XPATH, "//td[@class='el-table_1_column_2 is-center ']")
-            column_3_content = self.driver.find_elements(
-                By.XPATH, "//td[@class='el-table_1_column_3 is-center ']")
-            column_4_content = self.driver.find_elements(
-                By.XPATH, "//td[@class='el-table_1_column_4 is-center ']")
-            for i in column_2_content:
-                registered_code.append(i.text)
-            for j in column_3_content:
-                company.append(j.text)
-            for k in column_4_content:
-                production_name.append(k.text)
-            '''
-
             # open the next page
             try:
                 # try to click the next-page button
@@ -141,25 +123,20 @@ class CFDA_crawler():
                 time.sleep(2)
             except Exception:
                 flag = False
-
-            '''
-            # reset in order to get data on the next page
-            finally:
-                registered_code = []
-                company = []
-                production_name = []
-            '''
-        # self.save_in_csv(registered_code, company, production_name)
+        # job done
         print("Done")
         self.close_all()
 
     def is_loaded(self):
         return len(self.driver.window_handles) == 2
 
+    # if there are more than one window, close the current one and then switch to the original one
     def close_window(self, original_window):
         self.driver.close()
         self.driver.switch_to.window(original_window)
 
+    # save the whole data to csv file (just once)
+    # need to be modified in order to adjust to other purposes if you want to use this function
     def save_in_csv(self, data1, data2, data3):
         with open('D:\demo\Result.csv', 'w', encoding='utf-8-sig', newline='') as fp:
             file_write = csv.writer(fp)
@@ -168,6 +145,8 @@ class CFDA_crawler():
             for i in range(0, num):
                 file_write.writerow([data1[i], data2[i], data3[i]])
 
+    # save the data to database
+    # need to modify the function in data_saver.py if you want to use this function for crawling other websites
     def save_in_db(self, data):
         self.db.insert_data(data)
 
