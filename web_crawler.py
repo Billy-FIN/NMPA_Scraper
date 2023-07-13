@@ -5,7 +5,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import data_saver_program.data_saver as database
 import time
-import random
 import csv
 
 
@@ -36,6 +35,9 @@ class CFDA_crawler():
             option.add_argument(
                 "--disable-blink-features=AutomationControlled")
             self.driver = webdriver.Chrome(options=option)
+            self.driver.execute_cdp_cmd("Network.enable", {})
+            self.driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {
+                                        "headers": {"User-Agent": "browserClientA"}})
             self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
                 "source": """
                                 Object.defineProperty(navigator, 'webdriver', {
@@ -45,11 +47,14 @@ class CFDA_crawler():
             })
         elif self.browser == "firefox":
             options = webdriver.FirefoxOptions()
+            options.add_argument("--headless")  # 设置火狐为headless无界面模式
+            options.add_argument("--disable-gpu")
             self.driver = webdriver.Firefox(options=options)
 
     def open_webpage(self):
         self.get_driver()
         self.driver.get(self.url)
+        self.driver.maximize_window()
         time.sleep(10)
         # close the pop-up window
         self.driver.find_element(
@@ -61,7 +66,6 @@ class CFDA_crawler():
         # use the search bar and clink
         search_box = self.driver.find_element(
             By.XPATH, "/html/body/div/main/div[1]/div[7]/div/div[2]/input")
-        time.sleep(random.randint(0, 2))
         search_box.send_keys(
             '经营'
         )
@@ -73,7 +77,9 @@ class CFDA_crawler():
         # close the new pop-up window
         self.driver.find_element(
             By.XPATH, "/html/body/div[5]/div/div[5]/a[1]").click()
+        time.sleep(2)
         # adjust the number of lines it displays
+        '''
         drop_down_menu = self.driver.find_element(
             By.XPATH, "/html/body/div[1]/div[3]/div[3]/div/div/span[2]/div/div[1]/span")
         self.driver.execute_script("arguments[0].click();", drop_down_menu)
@@ -82,35 +88,35 @@ class CFDA_crawler():
         time.sleep(2)
         self.driver.find_element(
             By.XPATH, "/html/body/div[3]/div[1]/div[1]/ul/li[2]/span").click()
-        time.sleep(5)
+        '''
 
     def get_data(self):
         self.open_webpage()
         flag = True
         info = []
         original_window = self.driver.current_window_handle
-        for i in range(0, 2):
+        page_num = 1
+        while flag:
             details = self.driver.find_elements(
                 By.XPATH, "//button[@class='el-button el-button--primary el-button--mini']")
+            line = 0
             # open every detailed page and acquire data
             for detailed_page in details:
+                line += 1
                 detailed_page.click()
-                # WebDriverWait(self.driver, 10).until()
-                
-                # need to be optimized
-                # 
-                # 
                 time.sleep(10)
                 # switch to the detailed page
                 self.driver.switch_to.window(self.driver.window_handles[-1])
                 # get the data
                 content = self.driver.find_elements(
                     By.XPATH, "//td[@class='el-table_1_column_2 is-left ']")
-                for i in content:
-                    info.append(i.text)
-                    print(i.text)
+                for j in content:
+                    # print(j.text)
+                    info.append(j.text)
                 # store the data to database immediately
                 self.save_in_db(info)
+                print("Finished the job on line " +
+                      str(line) + ", page " + str(page_num))
                 info = []
                 # close and then back to the original page
                 self.close_window(original_window)
@@ -123,12 +129,11 @@ class CFDA_crawler():
                 time.sleep(2)
             except Exception:
                 flag = False
+            finally:
+                page_num += 1
         # job done
         print("Done")
         self.close_all()
-
-    def is_loaded(self):
-        return len(self.driver.window_handles) == 2
 
     # if there are more than one window, close the current one and then switch to the original one
     def close_window(self, original_window):

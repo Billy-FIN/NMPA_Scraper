@@ -7,18 +7,19 @@ class data_saver():
 
     def __init__(self):
         commands = (
+            #
+            #    legal_representative text,
+            #   person_in_charge_of_enterprise text,
+            #  residence_address text,
+            # business_address text,
+            # business_mode text,
+            # storage_address text,
+            # issue_department text,
             """
             CREATE TABLE IF NOT EXISTS public.company (
                 registered_id text,
                 company_name text,
-                legal_representative text,
-                person_in_charge_of_enterprise text,
-                residence_address text,
-                business_address text,
-                business_mode text,
                 business_scope text,
-                storage_address text,
-                issue_department text,
                 issue_date text,
                 exp text
             )
@@ -59,13 +60,13 @@ class data_saver():
             cur.execute(query, tpl)
             cur.close()
             conn.commit()
-            print("Completed!")
+            # print("Completed!")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             if conn is not None:
                 conn.close()
-            print("Connection closed")
+            # print("Connection closed")
 
     def copy_data_from_csv(self):
         self.run_query(
@@ -73,5 +74,5 @@ class data_saver():
 
     def insert_data(self, info):
         self.run_query(
-            "INSERT INTO public.company VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);", (info[0], info[1], info[2], info[3], info[4], info[5],
-                                                                                         info[6], info[7], info[8], info[9], info[10], info[11]))
+            "INSERT INTO public.company VALUES (%s,%s,%s,%s,%s);", (info[0], info[1], info[7],
+                                                                    info[10], info[11]))
