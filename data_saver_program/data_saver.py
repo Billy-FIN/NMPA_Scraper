@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import psycopg2
+import time
 from data_saver_program.config import config
 
 
@@ -73,6 +74,9 @@ class data_saver():
             "COPY public.medical_equipment FROM 'D:\demo\Result_copy.csv' delimiter ',' csv header", ())
 
     def insert_data(self, info):
+        start = time.time()
         self.run_query(
-            "INSERT INTO public.company VALUES (%s,%s,%s,%s,%s);", (info[0], info[1], info[7],
-                                                                    info[10], info[11]))
+            "INSERT INTO public.company VALUES (%s,%s,%s,%s,%s);", (info[0], info[1], info[2],
+                                                                    info[3], info[4]))
+        end = time.time()
+        print("写入数据库用时{}秒".format((end - start)))

@@ -4,6 +4,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import data_saver_program.data_saver as database
+from selenium.webdriver.common.action_chains import ActionChains
+from threading import Thread
 import time
 import csv
 
@@ -13,7 +15,15 @@ class CFDA_crawler():
         self.browser = browser
         self.url = url
         self.driver = None
+        self.content_xpath = [
+            "//*[@id='dataTable']/div[2]/table/tbody/tr[1]/td[2]",
+            "//*[@id='dataTable']/div[2]/table/tbody/tr[2]/td[2]",
+            "//*[@id='dataTable']/div[2]/table/tbody/tr[8]/td[2]",
+            "//*[@id='dataTable']/div[2]/table/tbody/tr[11]/td[2]",
+            "//*[@id='dataTable']/div[2]/table/tbody/tr[12]/td[2]"
+        ]
         self.db = database.data_saver()
+        self.tmp = []
 
     def get_driver(self):
         if self.browser == "chrome":
@@ -49,6 +59,8 @@ class CFDA_crawler():
             options = webdriver.FirefoxOptions()
             options.add_argument("--headless")  # 设置火狐为headless无界面模式
             options.add_argument("--disable-gpu")
+            # options.add_argument('--proxy-server=http://190.171.158.109:999')
+            options.page_load_strategy = "none"
             self.driver = webdriver.Firefox(options=options)
 
     def open_webpage(self):
@@ -56,9 +68,8 @@ class CFDA_crawler():
         self.driver.get(self.url)
         self.driver.maximize_window()
         time.sleep(10)
-        # close the pop-up window
-        self.driver.find_element(
-            By.XPATH, "/html/body/div[4]/div/div[5]/a[1]").click()
+        # click somewhere on the page to close the pop-up window
+        ActionChains(self.driver).move_by_offset(200, 100).click().perform()
         # click the target database
         target_db = self.driver.find_element(
             By.XPATH, "/html/body/div/main/div[2]/div[2]/div[1]/div[1]/div[10]/a/span")
@@ -74,12 +85,10 @@ class CFDA_crawler():
         # adjust handle to focus on the new window
         handles = self.driver.window_handles
         self.driver.switch_to.window(handles[-1])
-        # close the new pop-up window
-        self.driver.find_element(
-            By.XPATH, "/html/body/div[5]/div/div[5]/a[1]").click()
+        # click somewhere on the page to close the pop-up window
+        ActionChains(self.driver).move_by_offset(200, 100).click().perform()
         time.sleep(2)
         # adjust the number of lines it displays
-        '''
         drop_down_menu = self.driver.find_element(
             By.XPATH, "/html/body/div[1]/div[3]/div[3]/div/div/span[2]/div/div[1]/span")
         self.driver.execute_script("arguments[0].click();", drop_down_menu)
@@ -88,38 +97,44 @@ class CFDA_crawler():
         time.sleep(2)
         self.driver.find_element(
             By.XPATH, "/html/body/div[3]/div[1]/div[1]/ul/li[2]/span").click()
-        '''
 
     def get_data(self):
         self.open_webpage()
+        time.sleep(2)
         flag = True
         info = []
         original_window = self.driver.current_window_handle
         page_num = 1
-        while flag:
+        start_whole_process = time.time()
+        for i in range(0, 1):
             details = self.driver.find_elements(
                 By.XPATH, "//button[@class='el-button el-button--primary el-button--mini']")
-            line = 0
-            # open every detailed page and acquire data
+            # open every detailed page
             for detailed_page in details:
-                line += 1
                 detailed_page.click()
-                time.sleep(10)
+            time.sleep(20)
+            for i in range(1, 21):
+                start = time.time()
                 # switch to the detailed page
                 self.driver.switch_to.window(self.driver.window_handles[-1])
+                WebDriverWait(self.driver, timeout=60).until(self.is_loaded)
                 # get the data
-                content = self.driver.find_elements(
-                    By.XPATH, "//td[@class='el-table_1_column_2 is-left ']")
-                for j in content:
-                    # print(j.text)
-                    info.append(j.text)
+                '''
+                for xpath in self.content_xpath:
+                    data = self.driver.find_element(By.XPATH, xpath)
+                    info.append(data.text)
+                '''
                 # store the data to database immediately
-                self.save_in_db(info)
+                self.save_in_db(self.tmp)
+                self.tmp = []
+                end = time.time()
+                print("该组数据用时{}秒".format((end - start)))
                 print("Finished the job on line " +
-                      str(line) + ", page " + str(page_num))
+                      str(i) + ", page " + str(page_num))
                 info = []
-                # close and then back to the original page
-                self.close_window(original_window)
+                # close the window
+                self.driver.close()
+            self.driver.switch_to.window(original_window)
             # open the next page
             try:
                 # try to click the next-page button
@@ -134,6 +149,8 @@ class CFDA_crawler():
         # job done
         print("Done")
         self.close_all()
+        end_whole_process = time.time()
+        print("总共用时{}秒".format((end_whole_process - start_whole_process)))
 
     # if there are more than one window, close the current one and then switch to the original one
     def close_window(self, original_window):
@@ -158,8 +175,39 @@ class CFDA_crawler():
     def close_all(self):
         self.driver.quit()
 
+    def is_loaded(self, extra):
+        for element in self.content_xpath:
+            try:
+                data = self.driver.find_element(By.XPATH, element)
+                print(data.is_displayed())
+                self.tmp.append(data.text)
+            except Exception:
+                print(False)
+                return False
+        return True
+
+    def multi_threads(self):
+        # 开启4个进程，传入爬取的页码范围
+        thread_list = []
+        t1 = Thread(target=self.get_data)
+        t2 = Thread(target=self.get_data)
+        t3 = Thread(target=self.get_data)
+        t3.start()
+        t4 = Thread(target=self.get_data)
+        t4.start()
+        thread_list.append(t1)
+        thread_list.append(t2)
+        thread_list.append(t3)
+        thread_list.append(t4)
+        for t in thread_list:
+            t.start()
+
+        for t in thread_list:
+            t.join()
+
 
 if __name__ == "__main__":
     crawler = CFDA_crawler(
         "firefox", "https://www.nmpa.gov.cn/datasearch/home-index.html#category=ylqx")
+    # crawler.multi_threads()
     crawler.get_data()
