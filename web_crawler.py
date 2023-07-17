@@ -5,12 +5,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import data_saver_program.data_saver as database
 from selenium.webdriver.common.action_chains import ActionChains
-from threading import Thread
 import time
 import csv
 
+'''
+@Author: Qiuyang Wang
+@Email: billyfinnn@gmail.com
+@Date: 7/17/2023
+'''
 
-class CFDA_crawler():
+
+class web_crawler():
     def __init__(self, browser, url):
         self.browser = browser
         self.url = url
@@ -57,7 +62,7 @@ class CFDA_crawler():
             })
         elif self.browser == "firefox":
             options = webdriver.FirefoxOptions()
-            options.add_argument("--headless")  # 设置火狐为headless无界面模式
+            # options.add_argument("--headless")  # 设置火狐为headless无界面模式
             options.add_argument("--disable-gpu")
             # options.add_argument('--proxy-server=http://190.171.158.109:999')
             options.page_load_strategy = "none"
@@ -98,32 +103,91 @@ class CFDA_crawler():
         self.driver.find_element(
             By.XPATH, "/html/body/div[3]/div[1]/div[1]/ul/li[2]/span").click()
 
-    def get_data(self):
+    '''
+    This is a function designed for extract company overview info
+    '''
+
+    def get_company_overview(self):
+        self.open_webpage()
+        time.sleep(2)
+        original_window = self.driver.current_window_handle
+        flag = True
+        page_num = 1
+        registered_code = []
+        company_name = []
+        detail_link = []
+        start_all = time.time()
+        while flag:
+            start = time.time()
+            column_2_content = self.driver.find_elements(
+                By.XPATH, "//td[@class='el-table_1_column_2 is-center ']")
+            column_3_content = self.driver.find_elements(
+                By.XPATH, "//td[@class='el-table_1_column_3 is-center ']")
+            column_4_content = self.driver.find_elements(
+                By.XPATH, "//td[@class='el-table_1_column_4 is-center ']")
+            for i in column_2_content:
+                registered_code.append(i.text)
+            for j in column_3_content:
+                company_name.append(j.text)
+            current_handles = self.driver.window_handles
+            for k in column_4_content:
+                k.click()
+                WebDriverWait(self.driver, 10).until(
+                    EC.new_window_is_opened(current_handles))
+                self.driver.switch_to.window(self.driver.window_handles[-1])
+                WebDriverWait(self.driver, 60).until(EC.url_contains(
+                    "https://www.nmpa.gov.cn"))
+                print(self.driver.current_url)
+                detail_link.append(self.driver.current_url)
+                self.close_window(original_window)
+            try:
+                # try to click the next-page button
+                next_button = self.driver.find_element(
+                    By.CLASS_NAME, 'btn-next')
+                next_button.click()
+                time.sleep(1)
+            except Exception:
+                flag = False
+            finally:
+                self.save_in_db(registered_code, company_name, detail_link)
+                end = time.time()
+                print("该组数据用时{}秒".format((end - start)))
+                print("Finished the job on page " + str(page_num))
+                registered_code = []
+                company_name = []
+                detail_link = []
+                page_num += 1
+        end_all = time.time()
+        print("Done")
+        self.close_all()
+        print("总共用时{}秒".format((end_all - start_all)))
+
+    '''
+    This is a function designed for extract detail info directly (not the overview)
+    It would be relatively slow if the data is large (200,000+)
+    '''
+
+    def get_detail_data(self):
         self.open_webpage()
         time.sleep(2)
         flag = True
-        info = []
         original_window = self.driver.current_window_handle
         page_num = 1
         start_whole_process = time.time()
-        for i in range(0, 1):
+        while flag:
             details = self.driver.find_elements(
                 By.XPATH, "//button[@class='el-button el-button--primary el-button--mini']")
             # open every detailed page
             for detailed_page in details:
                 detailed_page.click()
             time.sleep(20)
+            # each page has 20 lines of information
             for i in range(1, 21):
                 start = time.time()
                 # switch to the detailed page
                 self.driver.switch_to.window(self.driver.window_handles[-1])
+                # wait and then get the data
                 WebDriverWait(self.driver, timeout=60).until(self.is_loaded)
-                # get the data
-                '''
-                for xpath in self.content_xpath:
-                    data = self.driver.find_element(By.XPATH, xpath)
-                    info.append(data.text)
-                '''
                 # store the data to database immediately
                 self.save_in_db(self.tmp)
                 self.tmp = []
@@ -131,7 +195,6 @@ class CFDA_crawler():
                 print("该组数据用时{}秒".format((end - start)))
                 print("Finished the job on line " +
                       str(i) + ", page " + str(page_num))
-                info = []
                 # close the window
                 self.driver.close()
             self.driver.switch_to.window(original_window)
@@ -169,8 +232,9 @@ class CFDA_crawler():
 
     # save the data to database
     # need to modify the function in data_saver.py if you want to use this function for crawling other websites
-    def save_in_db(self, data):
-        self.db.insert_data(data)
+    def save_in_db(self, id, name, link):
+        for i in range(len(id)):
+            self.db.insert_data(id[i], name[i], link[i])
 
     def close_all(self):
         self.driver.quit()
@@ -186,28 +250,9 @@ class CFDA_crawler():
                 return False
         return True
 
-    def multi_threads(self):
-        # 开启4个进程，传入爬取的页码范围
-        thread_list = []
-        t1 = Thread(target=self.get_data)
-        t2 = Thread(target=self.get_data)
-        t3 = Thread(target=self.get_data)
-        t3.start()
-        t4 = Thread(target=self.get_data)
-        t4.start()
-        thread_list.append(t1)
-        thread_list.append(t2)
-        thread_list.append(t3)
-        thread_list.append(t4)
-        for t in thread_list:
-            t.start()
-
-        for t in thread_list:
-            t.join()
-
 
 if __name__ == "__main__":
-    crawler = CFDA_crawler(
+    crawler = web_crawler(
         "firefox", "https://www.nmpa.gov.cn/datasearch/home-index.html#category=ylqx")
     # crawler.multi_threads()
-    crawler.get_data()
+    crawler.get_company_overview()

@@ -17,12 +17,10 @@ class data_saver():
             # storage_address text,
             # issue_department text,
             """
-            CREATE TABLE IF NOT EXISTS public.company (
+            CREATE TABLE IF NOT EXISTS company_overview (
                 registered_id text,
                 company_name text,
-                business_scope text,
-                issue_date text,
-                exp text
+                detail_info_page text
             )
             """
         )
@@ -73,10 +71,9 @@ class data_saver():
         self.run_query(
             "COPY public.medical_equipment FROM 'D:\demo\Result_copy.csv' delimiter ',' csv header", ())
 
-    def insert_data(self, info):
+    def insert_data(self, data1, data2, data3):
         start = time.time()
         self.run_query(
-            "INSERT INTO public.company VALUES (%s,%s,%s,%s,%s);", (info[0], info[1], info[2],
-                                                                    info[3], info[4]))
+            "INSERT INTO company_overview VALUES (%s,%s,%s);", (data1, data2, data3))
         end = time.time()
         print("写入数据库用时{}秒".format((end - start)))
