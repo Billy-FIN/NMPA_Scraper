@@ -7,15 +7,16 @@ from data_saver_program.config import config
 class data_saver():
 
     def __init__(self):
+        #
+        # legal_representative text,
+        # person_in_charge_of_enterprise text,
+        # residence_address text,
+        # business_address text,
+        # business_mode text,
+        # storage_address text,
+        # issue_department text,
+        self.database_name = "company_overview"
         commands = (
-            #
-            #    legal_representative text,
-            #   person_in_charge_of_enterprise text,
-            #  residence_address text,
-            # business_address text,
-            # business_mode text,
-            # storage_address text,
-            # issue_department text,
             """
             CREATE TABLE IF NOT EXISTS company_overview (
                 registered_id text,
@@ -69,11 +70,11 @@ class data_saver():
 
     def copy_data_from_csv(self):
         self.run_query(
-            "COPY public.medical_equipment FROM 'D:\demo\Result_copy.csv' delimiter ',' csv header", ())
+            "COPY " + self.database_name + " FROM 'xxx.csv' delimiter ',' csv header", ())
 
     def insert_data(self, data1, data2, data3):
         start = time.time()
         self.run_query(
-            "INSERT INTO company_overview VALUES (%s,%s,%s);", (data1, data2, data3))
+            "INSERT INTO " + self.database_name + " VALUES (%s,%s,%s);", (data1, data2, data3))
         end = time.time()
         print("写入数据库用时{}秒".format((end - start)))
