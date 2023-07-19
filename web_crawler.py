@@ -29,6 +29,7 @@ class web_crawler():
         ]
         self.db = database.data_saver()
         self.tmp = []
+        self.target_page = 30000
 
     def get_driver(self):
         if self.browser == "chrome":
@@ -94,6 +95,7 @@ class web_crawler():
         ActionChains(self.driver).move_by_offset(200, 100).click().perform()
         time.sleep(2)
         # adjust the number of lines it displays
+        '''
         drop_down_menu = self.driver.find_element(
             By.XPATH, "/html/body/div[1]/div[3]/div[3]/div/div/span[2]/div/div[1]/span")
         self.driver.execute_script("arguments[0].click();", drop_down_menu)
@@ -102,6 +104,12 @@ class web_crawler():
         time.sleep(2)
         self.driver.find_element(
             By.XPATH, "/html/body/div[3]/div[1]/div[1]/ul/li[2]/span").click()
+        '''
+        # go to the certain page by typing relative page num
+        page_num = self.driver.find_element(By.XPATH, "//input[@type='number']")
+        page_num.send_keys(Keys.BACKSPACE)
+        page_num.send_keys(str(self.target_page))
+        page_num.send_keys(Keys.ENTER)
 
     '''
     This is a function designed for extract company overview info
@@ -112,7 +120,7 @@ class web_crawler():
         time.sleep(2)
         original_window = self.driver.current_window_handle
         flag = True
-        page_num = 1
+        page_num = self.target_page
         registered_code = []
         company_name = []
         detail_link = []
@@ -172,7 +180,7 @@ class web_crawler():
         time.sleep(2)
         flag = True
         original_window = self.driver.current_window_handle
-        page_num = 1
+        page_num = self.target_page
         start_whole_process = time.time()
         while flag:
             details = self.driver.find_elements(
