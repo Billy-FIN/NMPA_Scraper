@@ -29,7 +29,7 @@ class web_crawler():
         ]
         self.db = database.data_saver()
         self.tmp = []
-        self.target_page = 30000
+        self.target_page = 30100
 
     def get_driver(self):
         if self.browser == "chrome":
@@ -140,7 +140,7 @@ class web_crawler():
             current_handles = self.driver.window_handles
             for k in column_4_content:
                 k.click()
-                WebDriverWait(self.driver, 10).until(
+                WebDriverWait(self.driver, 60).until(
                     EC.new_window_is_opened(current_handles))
                 self.driver.switch_to.window(self.driver.window_handles[-1])
                 WebDriverWait(self.driver, 60).until(EC.url_contains(
