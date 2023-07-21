@@ -29,7 +29,7 @@ class web_crawler():
         ]
         self.db = database.data_saver()
         self.tmp = []
-        self.target_page = 30100
+        self.target_page = 1
 
     def get_driver(self):
         if self.browser == "chrome":
@@ -63,7 +63,7 @@ class web_crawler():
             })
         elif self.browser == "firefox":
             options = webdriver.FirefoxOptions()
-            # options.add_argument("--headless")  # 设置火狐为headless无界面模式
+            options.add_argument("--headless")  # 设置火狐为headless无界面模式
             options.add_argument("--disable-gpu")
             # options.add_argument('--proxy-server=http://190.171.158.109:999')
             options.page_load_strategy = "none"
@@ -106,7 +106,8 @@ class web_crawler():
             By.XPATH, "/html/body/div[3]/div[1]/div[1]/ul/li[2]/span").click()
         '''
         # go to the certain page by typing relative page num
-        page_num = self.driver.find_element(By.XPATH, "//input[@type='number']")
+        page_num = self.driver.find_element(
+            By.XPATH, "//input[@type='number']")
         page_num.send_keys(Keys.BACKSPACE)
         page_num.send_keys(str(self.target_page))
         page_num.send_keys(Keys.ENTER)
@@ -124,15 +125,20 @@ class web_crawler():
         registered_code = []
         company_name = []
         detail_link = []
+        data_seq = []
         start_all = time.time()
         while flag:
             start = time.time()
+            column_1_content = self.driver.find_elements(
+                By.XPATH, "//td[@class='el-table_1_column_1 is-center ']")
             column_2_content = self.driver.find_elements(
                 By.XPATH, "//td[@class='el-table_1_column_2 is-center ']")
             column_3_content = self.driver.find_elements(
                 By.XPATH, "//td[@class='el-table_1_column_3 is-center ']")
             column_4_content = self.driver.find_elements(
                 By.XPATH, "//td[@class='el-table_1_column_4 is-center ']")
+            for z in column_1_content:
+                data_seq.append(z.text)
             for i in column_2_content:
                 registered_code.append(i.text)
             for j in column_3_content:
@@ -153,17 +159,19 @@ class web_crawler():
                 next_button = self.driver.find_element(
                     By.CLASS_NAME, 'btn-next')
                 next_button.click()
-                time.sleep(1)
+                time.sleep(2)
             except Exception:
                 flag = False
             finally:
-                self.save_in_db(registered_code, company_name, detail_link)
+                self.save_in_db(data_seq, registered_code,
+                                company_name, detail_link)
                 end = time.time()
                 print("该组数据用时{}秒".format((end - start)))
                 print("Finished the job on page " + str(page_num))
                 registered_code = []
                 company_name = []
                 detail_link = []
+                data_seq = []
                 page_num += 1
         end_all = time.time()
         print("Done")
@@ -240,9 +248,9 @@ class web_crawler():
 
     # save the data to database
     # need to modify the function in data_saver.py if you want to use this function for crawling other websites
-    def save_in_db(self, id, name, link):
+    def save_in_db(self, seq, id, name, link):
         for i in range(len(id)):
-            self.db.insert_data(id[i], name[i], link[i])
+            self.db.insert_data(seq[i], id[i], name[i], link[i])
 
     def close_all(self):
         self.driver.quit()

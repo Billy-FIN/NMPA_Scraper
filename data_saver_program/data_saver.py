@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import psycopg2
 import time
+from datetime import datetime
 from data_saver_program.config import config
 
 
@@ -15,14 +16,16 @@ class data_saver():
         # business_mode text,
         # storage_address text,
         # issue_department text,
-        self.database_name = "company_overview"
+        self.table_name = "company_overview"
         commands = (
             """
-            CREATE TABLE IF NOT EXISTS company_overview (
-                registered_id text,
-                company_name text,
-                detail_info_page text
-            )
+            CREATE TABLE IF NOT EXISTS "public"."company_overview" (
+                "data_seq" int,
+	            "registered_id" VARCHAR(1000) ,
+                "company_name" VARCHAR(1000) ,
+                "detail_info_page" VARCHAR(2000),
+	            "create_time" timestamp
+            );
             """
         )
         conn = None
@@ -49,6 +52,7 @@ class data_saver():
         finally:
             if conn is not None:
                 conn.close()
+        # create the table if it doesn't exist
         self.run_query(commands, ())
 
     def run_query(self, query, tpl):
@@ -70,11 +74,11 @@ class data_saver():
 
     def copy_data_from_csv(self):
         self.run_query(
-            "COPY " + self.database_name + " FROM 'xxx.csv' delimiter ',' csv header", ())
+            "COPY " + self.table_name + " FROM 'xxx.csv' delimiter ',' csv header", ())
 
-    def insert_data(self, data1, data2, data3):
+    def insert_data(self, data1, data2, data3, data4):
         start = time.time()
         self.run_query(
-            "INSERT INTO " + self.database_name + " VALUES (%s,%s,%s);", (data1, data2, data3))
+            "INSERT INTO " + self.table_name + " VALUES (%s,%s,%s,%s,%s);", (data1, data2, data3, data4, datetime.now()))
         end = time.time()
         print("写入数据库用时{}秒".format((end - start)))
