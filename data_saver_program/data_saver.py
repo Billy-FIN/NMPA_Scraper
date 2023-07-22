@@ -77,8 +77,8 @@ class data_saver():
             "COPY " + self.table_name + " FROM 'xxx.csv' delimiter ',' csv header", ())
 
     def insert_data(self, data1, data2, data3, data4):
-        start = time.time()
+        # start = time.time()
         self.run_query(
             "INSERT INTO " + self.table_name + " VALUES (%s,%s,%s,%s,%s);", (data1, data2, data3, data4, datetime.now()))
-        end = time.time()
-        print("写入数据库用时{}秒".format((end - start)))
+        # end = time.time()
+        # print("写入数据库用时{}秒".format((end - start)))
