@@ -20,6 +20,26 @@ class web_crawler_requests():
         self.detail_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/queryDetail'
         self.cookies = None
         self.db = database.data_saver()
+        self.proxies_list = [{'http': 'http://59.55.161.88:3256',
+                                 'https': 'https://59.55.161.88:3256'},
+                             {'http': 'http://103.37.141.69:80',
+                                 'https': 'https://103.37.141.69:80'},
+                             {'http': 'http://27.191.60.168:3256',
+                                 'https': 'https://27.191.60.168:3256'},
+                             {'http': 'http://124.205.153.36:80',
+                                 'https': 'https://124.205.153.36:80'},
+                             {'http': 'http://139.224.18.116:80',
+                                 'https': 'https://139.224.18.116:80'},
+                             {'http': 'http://60.191.11.241:3128',
+                                 'https': 'https://60.191.11.241:3128'},
+                             {'http': 'http://120.194.55.139:6969',
+                                 'https': 'https://120.194.55.139:6969'},
+                             {'http': 'http://175.7.199.222:3256',
+                                 'https': 'https://175.7.199.222:3256'},
+                             {'http': 'http://27.191.60.5:3256',
+                                 'https': 'https://27.191.60.5:3256'},
+                             {'http': 'http://121.4.36.93:8888',
+                                 'https': 'https://121.4.36.93:8888'}]
         # use selenium to get the cookie
         options = webdriver.FirefoxOptions()
         options.add_argument("--headless")
@@ -28,6 +48,8 @@ class web_crawler_requests():
         cookies = self.driver.get_cookies()
         self.cookies = self.compose_cookies(cookies)
 
+    # refresh the page opened by the selenium websriver 
+    # and then get the new cookie
     def refresh_cookies(self):
         print('\n' + 'Refreshing cookies...' + '\n')
         self.driver.refresh()
@@ -73,6 +95,11 @@ class web_crawler_requests():
     def save_in_db(self, seq, id, name, link):
         self.db.insert_data(seq, id, name, link)
 
+    def output_in_log(s):
+        f = open('output.txt', 'a')
+        f.write(s)
+        f.close()
+
     def get_detail_page(self):
         t = self.get_timestamp()
         params = {
@@ -115,20 +142,14 @@ class web_crawler_requests():
             seq = 89981
         else:
             seq = current_seq
-            f = open('output.txt', 'a')
-            f.write("Resume...\n")
-            f.close()
+            self.output_in_log("Resume...\n")
         try:
+            count = 0
             for i in range(start_page, end_page):
-                if (i - start_page) == 100 or (i - start_page) == 200 or (i - start_page) == 400:
-                    f = open('output.txt', 'a')
-                    f.write("taking a nap...\n")
-                    f.close()
+                if (count % 50) == 0 and count != 0:
+                    self.output_in_log("taking a nap...\n")
                     time.sleep(120)
-                    start_page = i
-                    f = open('output.txt', 'a')
-                    f.write("Waking up...\n")
-                    f.close()
+                    self.output_in_log("Waking up...\n")
                 start = time.time()
                 t = self.get_timestamp()
                 self.page_num = i
@@ -161,39 +182,38 @@ class web_crawler_requests():
                         'Cookie': self.cookies
                     }
                     res = requests.get(url=self.search_url,
-                                       headers=header, params=params)
+                                       headers=header, params=params, proxies=random.choice(self.proxies_list))
                     if str(res.status_code) != "200":
-                        print('Fail')
-                        break
+                        print('Fail. Need new cookies!')
+                        return
                 finally:
                     # print(res.content.decode('utf-8'))
+                    # print(res.raw)
                     data = res.json()['data']['list']
                     for d in data:
                         self.save_in_db(seq, d['f0'], d['f1'], d['f2'])
                         seq += 1
                     end = time.time()
-                    print('page ' + str(i))# +
-                        #  ' finished. Time spent: ', end - start)
-                    #time.sleep(random.randint(1, 4))
+                    print('page ' + str(i))  # +
+                    count += 1
+                    #  ' finished. Time spent: ', end - start)
+                    time.sleep(random.randint(1, 4))
         except Exception as e:
             print(e)
-            f = open('output.txt', 'a')
-            f.write("Stops at data_seq " + str(seq) + " page " + str(i) + "\n")
-            f.close()
+            self.output_in_log("Stops at data_seq " + str(seq) + " page " + str(i) + "\n")
             time.sleep(120)
             self.get_search_results(i, end_page, seq)
             return
-        f = open('output.txt', 'a')
-        f.write(str(start_page) + " to " + str(end_page) + ", done\n")
-        f.close()
-        self.driver.quit()
+        else:
+            self.output_in_log(str(start_page) + " to " + str(end_page) + ", done\n")
+            self.driver.quit()
 
 
 if __name__ == "__main__":
     req = web_crawler_requests([], 'ff8080818046502f0180df06de3234d8', '经营')
-    # req.get_search_results(1, 21210)
+    #req.get_search_results(1, 10)
     workload = [[1, 500], [500, 1000], [1000, 1500], [1500, 2000], [2000, 2500], [
-       2500, 3000], [3000, 3500], [3500, 4000], [4000, 4500], [4500, 5000]]
+        2500, 3000], [3000, 3500], [3500, 4000], [4000, 4500], [4500, 5000]]
     thread_list = []
     for task in workload:
         thread = threading.Thread(
