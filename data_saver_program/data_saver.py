@@ -23,7 +23,7 @@ class data_saver():
                 "data_seq" int,
 	            "registered_id" VARCHAR(1000) ,
                 "company_name" VARCHAR(1000) ,
-                "detail_info_page" VARCHAR(2000),
+                "company_id" VARCHAR(2000),
 	            "create_time" timestamp
             );
             """
