@@ -1,4 +1,4 @@
-data_saver_program/__pycache__
+data_saver_program/__pycache__/
 *.log
 # Byte-compiled / optimized / DLL files
 __pycache__/
