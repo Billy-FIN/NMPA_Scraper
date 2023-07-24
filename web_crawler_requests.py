@@ -9,37 +9,16 @@ import threading
 
 
 class web_crawler_requests():
-    def __init__(self, id_list, itemId, search_key='', page_size=20, page_num=1):
+    def __init__(self, id_list, itemId, search_key=''):
         # config
         self.id_list = id_list
         self.itemId = itemId
         self.search_key = search_key
-        self.page_size = page_size
-        self.page_num = page_num
+        self.page_size = 20
         self.search_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/search'
         self.detail_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/queryDetail'
         self.cookies = None
         self.db = database.data_saver()
-        self.proxies_list = [{'http': 'http://59.55.161.88:3256',
-                                 'https': 'https://59.55.161.88:3256'},
-                             {'http': 'http://103.37.141.69:80',
-                                 'https': 'https://103.37.141.69:80'},
-                             {'http': 'http://27.191.60.168:3256',
-                                 'https': 'https://27.191.60.168:3256'},
-                             {'http': 'http://124.205.153.36:80',
-                                 'https': 'https://124.205.153.36:80'},
-                             {'http': 'http://139.224.18.116:80',
-                                 'https': 'https://139.224.18.116:80'},
-                             {'http': 'http://60.191.11.241:3128',
-                                 'https': 'https://60.191.11.241:3128'},
-                             {'http': 'http://120.194.55.139:6969',
-                                 'https': 'https://120.194.55.139:6969'},
-                             {'http': 'http://175.7.199.222:3256',
-                                 'https': 'https://175.7.199.222:3256'},
-                             {'http': 'http://27.191.60.5:3256',
-                                 'https': 'https://27.191.60.5:3256'},
-                             {'http': 'http://121.4.36.93:8888',
-                                 'https': 'https://121.4.36.93:8888'}]
         # use selenium to get the cookie
         options = webdriver.FirefoxOptions()
         options.add_argument("--headless")
@@ -95,7 +74,7 @@ class web_crawler_requests():
     def save_in_db(self, seq, id, name, link):
         self.db.insert_data(seq, id, name, link)
 
-    def output_in_log(s):
+    def output_in_log(self, s):
         f = open('output.txt', 'a')
         f.write(s)
         f.close()
@@ -104,7 +83,7 @@ class web_crawler_requests():
         t = self.get_timestamp()
         params = {
             'itemId': self.itemId,
-            'id': 'ffffdbe3ea2a31419920b5baac5fe3f8',
+            'id': 'd62af1f86bb09b19a29baad60b3bc05c',
             'timestamp': t
         }
         sign = self.get_sign(params)
@@ -115,31 +94,12 @@ class web_crawler_requests():
             'Cookie': self.cookies
         }
         res = requests.get(url=self.detail_url, headers=header, params=params)
-        time.sleep(2)
         print(res.status_code)
         print(res.content.decode('utf-8'))
 
     def get_search_results(self, start_page, end_page, current_seq=None):
-        if start_page == 1:
-            seq = 1
-        elif start_page == 500:
-            seq = 9981
-        elif start_page == 1000:
-            seq = 19981
-        elif start_page == 1500:
-            seq = 29981
-        elif start_page == 2000:
-            seq = 39981
-        elif start_page == 2500:
-            seq = 49981
-        elif start_page == 3000:
-            seq = 59981
-        elif start_page == 3500:
-            seq = 69981
-        elif start_page == 4000:
-            seq = 79981
-        elif start_page == 4500:
-            seq = 89981
+        if current_seq == None:
+            seq = start_page * 20 - 19
         else:
             seq = current_seq
             self.output_in_log("Resume...\n")
@@ -152,12 +112,11 @@ class web_crawler_requests():
                     self.output_in_log("Waking up...\n")
                 start = time.time()
                 t = self.get_timestamp()
-                self.page_num = i
                 params = {
                     'itemId': self.itemId,
                     'isSenior': "N",
                     'searchValue': self.search_key,
-                    'pageNum': self.page_num,
+                    'pageNum': i,
                     'pageSize': self.page_size,
                     'timestamp': t
                 }
@@ -182,7 +141,7 @@ class web_crawler_requests():
                         'Cookie': self.cookies
                     }
                     res = requests.get(url=self.search_url,
-                                       headers=header, params=params, proxies=random.choice(self.proxies_list))
+                                       headers=header, params=params)
                     if str(res.status_code) != "200":
                         print('Fail. Need new cookies!')
                         return
@@ -194,9 +153,8 @@ class web_crawler_requests():
                         self.save_in_db(seq, d['f0'], d['f1'], d['f2'])
                         seq += 1
                     end = time.time()
-                    print('page ' + str(i))  # +
+                    print('page ' + str(i) + ' finished. Time spent: ', end - start)
                     count += 1
-                    #  ' finished. Time spent: ', end - start)
                     time.sleep(random.randint(1, 4))
         except Exception as e:
             print(e)
@@ -206,20 +164,24 @@ class web_crawler_requests():
             return
         else:
             self.output_in_log(str(start_page) + " to " + str(end_page) + ", done\n")
-            self.driver.quit()
 
 
 if __name__ == "__main__":
+    main_thread_start = time.time()
+    tmp = 1
     req = web_crawler_requests([], 'ff8080818046502f0180df06de3234d8', '经营')
-    #req.get_search_results(1, 10)
-    workload = [[1, 500], [500, 1000], [1000, 1500], [1500, 2000], [2000, 2500], [
-        2500, 3000], [3000, 3500], [3500, 4000], [4000, 4500], [4500, 5000]]
+    # req.get_detail_page()
+    workload = [[1, 1251], [1251, 2501], [2501, 3751], [3751, 5001]]
     thread_list = []
     for task in workload:
-        thread = threading.Thread(
+        thread = threading.Thread(name="t" + str(tmp),
             target=req.get_search_results, args=(task[0], task[1],))
         thread_list.append(thread)
+        tmp+=1
     for thread in thread_list:
         thread.start()
     for thread in thread_list:
         thread.join()
+    req.driver.quit()
+    main_thread_end = time.time()
+    print('Done. Time spent: ', main_thread_end - main_thread_start)
