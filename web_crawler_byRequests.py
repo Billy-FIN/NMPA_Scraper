@@ -9,14 +9,23 @@ import threading
 
 
 class web_crawler_requests():
-    def __init__(self, id_list, itemId, search_key=''):
+    def __init__(self, id_list, itemId_name, search_key=''):
         # config
-        self.id_list = id_list
-        self.itemId = itemId
-        self.search_key = search_key
-        self.page_size = 20
         self.search_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/search'
         self.detail_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/queryDetail'
+        self.itemId_list = {
+            # other itemIds can be found in NMPA_DATA.json in the /resources
+            "医疗器械经营企业（许可）": "ff8080818046502f0180df06de3234d8",
+            "医疗器械经营企业（备案）": "ff8080818046502f0180df094b2a3506",
+            "境内医疗器械（注册）": "ff80808183cad7500183cb66fe690285",
+            "境内医疗器械（备案）": "ff80808183cad7500183cb68075c02d7",
+            "进口医疗器械（注册）": "ff808081830b103501838d4871b53543",
+            "进口医疗器械（备案）": "ff808081830b103501838d49d7ce3572",
+        }
+        self.id_list = id_list
+        self.itemId = self.itemId_list[itemId_name]
+        self.search_key = search_key
+        self.page_size = 20
         self.cookies = None
         self.db = database.data_saver()
         # use selenium to get the cookie
@@ -35,6 +44,7 @@ class web_crawler_requests():
         self.cookies = self.driver.get_cookies()
         self.cookies = self.compose_cookies(self.cookies)
 
+    # 
     def compose_cookies(self, cookies):
         strr = ''
         for c in cookies:
@@ -44,6 +54,8 @@ class web_crawler_requests():
             strr += ';'
         return strr[:-1]
 
+    # generate a signiture for the use of headers
+    # the signiture will vary due to different timestamps
     def get_sign(self, dic):
         array = []
         for key in dic:
@@ -171,7 +183,7 @@ if __name__ == "__main__":
     tmp = 1
     req = web_crawler_requests([], 'ff8080818046502f0180df06de3234d8', '经营')
     # req.get_detail_page()
-    workload = [[1, 1251], [1251, 2501], [2501, 3751], [3751, 5001]]
+    workload = [[10001, 12801], [12801, 15601], [15601, 18401], [18401, 21201]]
     thread_list = []
     for task in workload:
         thread = threading.Thread(name="t" + str(tmp),

@@ -1,3 +1,11 @@
+'''
+Used for storing the data
+
+@Author: Qiuyang Wang
+@Email: billyfinnn@gmail.com
+@Date: 7/25/2023
+'''
+
 #!/usr/bin/python
 import psycopg2
 import time
