@@ -24,15 +24,22 @@ class data_saver():
         # business_mode text,
         # storage_address text,
         # issue_department text,
-        self.table_name = "company_overview"
+        self.table_name = "detail_info"
         commands = (
             """
-            CREATE TABLE IF NOT EXISTS "public"."company_overview" (
-                "data_seq" int,
-	            "registered_id" VARCHAR(1000) ,
-                "company_name" VARCHAR(1000) ,
-                "company_id" VARCHAR(2000),
-	            "create_time" timestamp
+            CREATE TABLE IF NOT EXISTS "public"."detail_info" (
+	            "registered_id" text,
+                "company_name" text,
+	            "legal_representative" text,
+                "person_in_charge_of_enterprise" text,
+                "residence_address" text,
+                "business_address" text,
+                "business_mode" text,
+                "business_scope" text, 
+                "storage_address" text,
+                "issue_department" text,
+                "issue_date" text,
+                "exp" text
             );
             """
         )
@@ -49,7 +56,9 @@ class data_saver():
             cur.execute('SELECT version()')
             db_version = cur.fetchone()
             print(db_version)
+            # create the table if it doesn't exist
             print("Connection established")
+            cur.execute(commands, ())
             # close communication with the PostgreSQL database server
             cur.close()
             # commit the changes
@@ -60,18 +69,21 @@ class data_saver():
         finally:
             if conn is not None:
                 conn.close()
-        # create the table if it doesn't exist
-        self.run_query(commands, ())
 
-    def run_query(self, query, tpl):
+    def run_query(self, query, tpl, flag):
         conn = None
         try:
             params = config()
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
             cur.execute(query, tpl)
+            if flag == True:
+                data = cur.fetchone()
+            else: 
+                data = None
             cur.close()
             conn.commit()
+            return data
             # print("Completed!")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
@@ -84,9 +96,10 @@ class data_saver():
         self.run_query(
             "COPY " + self.table_name + " FROM 'xxx.csv' delimiter ',' csv header", ())
 
-    def insert_data(self, data1, data2, data3, data4):
+    def insert_data(self, data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12):
         # start = time.time()
+        # need to adjust this function if the target table changes
         self.run_query(
-            "INSERT INTO " + self.table_name + " VALUES (%s,%s,%s,%s,%s);", (data1, data2, data3, data4, datetime.now()))
+            "INSERT INTO " + self.table_name + " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);", (data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12), False)
         # end = time.time()
         # print("写入数据库用时{}秒".format((end - start)))

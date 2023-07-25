@@ -24,7 +24,7 @@ import time
 import csv
 
 
-class web_crawler():
+class web_crawler_bySelenium():
     def __init__(self, browser, url):
         self.browser = browser
         self.url = url
@@ -277,6 +277,6 @@ class web_crawler():
 
 
 if __name__ == "__main__":
-    crawler = web_crawler(
+    crawler = web_crawler_bySelenium(
         "firefox", "https://www.nmpa.gov.cn/datasearch/home-index.html#category=ylqx")
     crawler.get_company_overview()

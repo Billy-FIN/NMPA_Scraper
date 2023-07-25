@@ -1,3 +1,16 @@
+'''
+After reading the source code carefully and then figuring out how the website of Chinese National Medical Products 
+Administration works, we can use Python to replicate the request and signiture in order to get the json file 
+from the database api. It is much faster than Selenium.
+
+Weakness: Don't make requests too frequently. The remote server may limit your IP.
+
+@Author: Qiuyang Wang
+@Email: billyfinnn@gmail.com
+@Date: 7/25/2023
+'''
+
+
 import requests
 import time
 from urllib import parse
@@ -8,8 +21,8 @@ import random
 import threading
 
 
-class web_crawler_requests():
-    def __init__(self, id_list, itemId_name, search_key=''):
+class web_crawler_byRequests():
+    def __init__(self, itemId_name, search_key=''):
         # config
         self.search_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/search'
         self.detail_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/queryDetail'
@@ -22,7 +35,6 @@ class web_crawler_requests():
             "进口医疗器械（注册）": "ff808081830b103501838d4871b53543",
             "进口医疗器械（备案）": "ff808081830b103501838d49d7ce3572",
         }
-        self.id_list = id_list
         self.itemId = self.itemId_list[itemId_name]
         self.search_key = search_key
         self.page_size = 20
@@ -36,7 +48,7 @@ class web_crawler_requests():
         cookies = self.driver.get_cookies()
         self.cookies = self.compose_cookies(cookies)
 
-    # refresh the page opened by the selenium websriver 
+    # refresh the page opened by the selenium websriver
     # and then get the new cookie
     def refresh_cookies(self):
         print('\n' + 'Refreshing cookies...' + '\n')
@@ -44,7 +56,7 @@ class web_crawler_requests():
         self.cookies = self.driver.get_cookies()
         self.cookies = self.compose_cookies(self.cookies)
 
-    # 
+    # used for getting a new cookie
     def compose_cookies(self, cookies):
         strr = ''
         for c in cookies:
@@ -63,6 +75,7 @@ class web_crawler_requests():
         array = self.paramsStrSort('&'.join(array))
         return self.jsonmd5ToString(array)
 
+    # encoding method for the signiture
     def jsonmd5ToString(self, ready_to_encode):
         ready_to_encode = ready_to_encode + "&nmpasecret2020"
         # encodeURICoponent
@@ -72,6 +85,7 @@ class web_crawler_requests():
         m.update(a.encode('utf-8'))
         return m.hexdigest()
 
+    # used for generating a signiture
     def paramsStrSort(self, a):
         a = a.split("&")
         a.sort()
@@ -80,36 +94,91 @@ class web_crawler_requests():
             b = b + str(i) + "&"
         return b[:-1]
 
+    # get a new timestamp
     def get_timestamp(self):
         return str(round(time.time()) * 1000)
 
-    def save_in_db(self, seq, id, name, link):
+    # store search results in a database
+    def search_results_save_in_db(self, seq, id, name, link):
         self.db.insert_data(seq, id, name, link)
 
+    # store detailed info in a database
+    def details_save_in_db(self, registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address, business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp):
+        self.db.insert_data(registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address,
+                            business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp)
+
+    # output the progress while operating the program
     def output_in_log(self, s):
         f = open('output.txt', 'a')
         f.write(s)
         f.close()
 
-    def get_detail_page(self):
-        t = self.get_timestamp()
-        params = {
-            'itemId': self.itemId,
-            'id': 'd62af1f86bb09b19a29baad60b3bc05c',
-            'timestamp': t
-        }
-        sign = self.get_sign(params)
-        header = {
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-            'Sign': sign,
-            'Timestamp': t,
-            'Cookie': self.cookies
-        }
-        res = requests.get(url=self.detail_url, headers=header, params=params)
-        print(res.status_code)
-        print(res.content.decode('utf-8'))
+    # get the detail information after having Ids
+    def get_detail_page(self, head, rear):
+        try:
+            for i in range(head, rear):
+                start = time.time()
+                id = self.db.run_query(
+                    "SELECT company_id FROM public.company_overview ORDER BY data_seq ASC limit 1 offset " + str(i), (), (True))[0]
+                t = self.get_timestamp()
+                params = {
+                    'itemId': self.itemId,
+                    'id': str(id),
+                    'timestamp': t
+                }
+                sign = self.get_sign(params)
+                header = {
+                    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                    'Sign': sign,
+                    'Timestamp': t,
+                    'Cookie': self.cookies
+                }
+                res = requests.get(url=self.detail_url,
+                                   headers=header, params=params)
+                try:
+                    if str(res.status_code) != "200":
+                        raise Exception
+                except:
+                    # if the cookie is expired, let Selenium refresh the page to get a new one
+                    self.refresh_cookies()
+                    header = {
+                        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                        'Sign': sign,
+                        'Timestamp': t,
+                        'Cookie': self.cookies
+                    }
+                    res = requests.get(url=self.detail_url,
+                                       headers=header, params=params)
+                    if str(res.status_code) != "200":
+                        # if it still fails, the programmer needs to check it out
+                        print(res.text)
+                        print(res.content.decode("utf-8"))
+                        print(res.content)
+                        print('Fail!')
+                finally:
+                    # get the data successfully
+                    d = res.json()['data']['detail']
+                    self.details_save_in_db(d['f0'], d['f1'], d['f2'], d['f3'], d['f4'],
+                                            d['f5'], d['f6'], d['f7'], d['f8'], d['f9'], d['f10'], d['f11'])
+                    end = time.time()
+                    print('company ' + str(i) +
+                          ' finished. Time spent: ', end - start)
+                    # time.sleep(random.randint(1, 4))
+        except Exception as e:
+            print(e)
+            self.output_in_log("Stops at " + "company " + str(i) + "\n")
+            time.sleep(120)
+            # restart from where it stops
+            self.output_in_log("Resume...\n")
+            self.get_detail_page(i, rear)
+        else:
+            self.output_in_log(str(head) + " to " +
+                               str(rear) + ", done\n")
+
+    # get the search results (all the overview data from a certain database)
 
     def get_search_results(self, start_page, end_page, current_seq=None):
+        # ensure the correct line number for each data
         if current_seq == None:
             seq = start_page * 20 - 19
         else:
@@ -117,6 +186,7 @@ class web_crawler_requests():
             self.output_in_log("Resume...\n")
         try:
             count = 0
+            # set a rule for the program to stop, avoiding the limitation made by the remote server
             for i in range(start_page, end_page):
                 if (count % 50) == 0 and count != 0:
                     self.output_in_log("taking a nap...\n")
@@ -139,12 +209,14 @@ class web_crawler_requests():
                     'Timestamp': t,
                     'Cookie': self.cookies
                 }
+                # make a request
                 res = requests.get(url=self.search_url,
                                    headers=header, params=params)
                 try:
                     if str(res.status_code) != "200":
                         raise Exception
                 except Exception:
+                    # if the cookie is expired, let Selenium refresh the page to get a new one
                     self.refresh_cookies()
                     header = {
                         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
@@ -155,45 +227,50 @@ class web_crawler_requests():
                     res = requests.get(url=self.search_url,
                                        headers=header, params=params)
                     if str(res.status_code) != "200":
-                        print('Fail. Need new cookies!')
-                        return
+                        # if it still fails, the programmer needs to check it out
+                        print('Fail!')
                 finally:
-                    # print(res.content.decode('utf-8'))
-                    # print(res.raw)
+                    # get the data successfully
                     data = res.json()['data']['list']
                     for d in data:
                         self.save_in_db(seq, d['f0'], d['f1'], d['f2'])
                         seq += 1
                     end = time.time()
-                    print('page ' + str(i) + ' finished. Time spent: ', end - start)
+                    print('page ' + str(i) +
+                          ' finished. Time spent: ', end - start)
                     count += 1
                     time.sleep(random.randint(1, 4))
         except Exception as e:
+            # restart after resting 2 mins (recursion)
             print(e)
-            self.output_in_log("Stops at data_seq " + str(seq) + " page " + str(i) + "\n")
+            self.output_in_log("Stops at data_seq " +
+                               str(seq) + " page " + str(i) + "\n")
             time.sleep(120)
+            # restart from where it stops
             self.get_search_results(i, end_page, seq)
             return
         else:
-            self.output_in_log(str(start_page) + " to " + str(end_page) + ", done\n")
+            self.output_in_log(str(start_page) + " to " +
+                               str(end_page) + ", done\n")
 
 
 if __name__ == "__main__":
     main_thread_start = time.time()
-    tmp = 1
-    req = web_crawler_requests([], 'ff8080818046502f0180df06de3234d8', '经营')
-    # req.get_detail_page()
-    workload = [[10001, 12801], [12801, 15601], [15601, 18401], [18401, 21201]]
-    thread_list = []
-    for task in workload:
-        thread = threading.Thread(name="t" + str(tmp),
-            target=req.get_search_results, args=(task[0], task[1],))
-        thread_list.append(thread)
-        tmp+=1
-    for thread in thread_list:
-        thread.start()
-    for thread in thread_list:
-        thread.join()
-    req.driver.quit()
-    main_thread_end = time.time()
-    print('Done. Time spent: ', main_thread_end - main_thread_start)
+    req = web_crawler_byRequests("医疗器械经营企业（许可）", '经营')
+    req.get_detail_page(0,100)
+    # # multi-threads
+    # tmp = 1
+    # workload = [[1, 100], [10, 20], [20, 30], [30, 40]]
+    # thread_list = []
+    # for task in workload:
+    #     thread = threading.Thread(name="t" + str(tmp),
+    #                               target=req.get_detail_page, args=(task[0], task[1],))
+    #     thread_list.append(thread)
+    #     tmp += 1
+    # for thread in thread_list:
+    #     thread.start()
+    # for thread in thread_list:
+    #     thread.join()
+    # req.driver.quit()
+    # main_thread_end = time.time()
+    # print('Done. Time spent: ', main_thread_end - main_thread_start)
