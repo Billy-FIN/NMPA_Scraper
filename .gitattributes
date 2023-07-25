@@ -1,1 +1,2 @@
-resources/* linguist-vendored=false
+*.js linguist-language=python
+*.vue linguist-language=python
