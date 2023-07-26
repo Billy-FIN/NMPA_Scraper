@@ -24,7 +24,7 @@ import time
 import csv
 
 
-class web_crawler_bySelenium():
+class NMPA_scraper_bySelenium():
     def __init__(self, browser, url):
         self.browser = browser
         self.url = url
@@ -277,6 +277,6 @@ class web_crawler_bySelenium():
 
 
 if __name__ == "__main__":
-    crawler = web_crawler_bySelenium(
+    crawler = NMPA_scraper_bySelenium(
         "firefox", "https://www.nmpa.gov.cn/datasearch/home-index.html#category=ylqx")
     crawler.get_company_overview()

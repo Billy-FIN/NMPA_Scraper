@@ -19,9 +19,9 @@ from selenium import webdriver
 import data_saver_program.data_saver as database
 import random
 import threading
+from fake_useragent import UserAgent
 
-
-class web_crawler_byRequests():
+class NMPA_scraper_byRequests():
     def __init__(self, itemId_name, search_key=''):
         # config
         self.search_url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/search'
@@ -35,11 +35,32 @@ class web_crawler_byRequests():
             "进口医疗器械（注册）": "ff808081830b103501838d4871b53543",
             "进口医疗器械（备案）": "ff808081830b103501838d49d7ce3572",
         }
+        self.proxy_pool = [{'http': 'http://59.55.161.88:3256',
+                                 'https': 'https://59.55.161.88:3256'},
+                             {'http': 'http://103.37.141.69:80',
+                                 'https': 'https://103.37.141.69:80'},
+                             {'http': 'http://27.191.60.168:3256',
+                                 'https': 'https://27.191.60.168:3256'},
+                             {'http': 'http://124.205.153.36:80',
+                                 'https': 'https://124.205.153.36:80'},
+                             {'http': 'http://139.224.18.116:80',
+                                 'https': 'https://139.224.18.116:80'},
+                             {'http': 'http://60.191.11.241:3128',
+                                 'https': 'https://60.191.11.241:3128'},
+                             {'http': 'http://120.194.55.139:6969',
+                                 'https': 'https://120.194.55.139:6969'},
+                             {'http': 'http://175.7.199.222:3256',
+                                 'https': 'https://175.7.199.222:3256'},
+                             {'http': 'http://27.191.60.5:3256',
+                                 'https': 'https://27.191.60.5:3256'},
+                             {'http': 'http://121.4.36.93:8888',
+                                 'https': 'https://121.4.36.93:8888'}]
         self.itemId = self.itemId_list[itemId_name]
         self.search_key = search_key
         self.page_size = 20
         self.cookies = None
-        self.db = database.data_saver()
+        #self.db = database.data_saver()
+        self.ua = UserAgent()
         # use selenium to get the cookie
         options = webdriver.FirefoxOptions()
         options.add_argument("--headless")
@@ -48,6 +69,22 @@ class web_crawler_byRequests():
         cookies = self.driver.get_cookies()
         self.cookies = self.compose_cookies(cookies)
 
+
+# -------------------------------------------------------------------------------------------------
+# 
+# Functions to ensure a successful operation
+# 
+# -------------------------------------------------------------------------------------------------
+
+
+    def get_proxy(self):
+        return requests.get("http://127.0.0.1:5010/get/").json()
+
+    def delete_proxy(self, proxy):
+        requests.get("http://127.0.0.1:5010/delete/?proxy={}".format(proxy))
+    
+    
+    
     # refresh the page opened by the selenium websriver
     # and then get the new cookie
     def refresh_cookies(self):
@@ -113,6 +150,16 @@ class web_crawler_byRequests():
         f.write(s)
         f.close()
 
+
+# -------------------------------------------------------------------------------------------------
+# 
+# Two functions to obtain data.
+#       One is for search results - overview: a lot of companys or other medical stuff
+#       The other is for detail page - detail infomation of each company or medical stuff
+# 
+# -------------------------------------------------------------------------------------------------
+
+
     # get the detail information after having Ids
     def get_detail_page(self, head, rear):
         try:
@@ -128,29 +175,31 @@ class web_crawler_byRequests():
                 }
                 sign = self.get_sign(params)
                 header = {
-                    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                    'User-Agent': self.ua.random,
                     'Sign': sign,
                     'Timestamp': t,
                     'Cookie': self.cookies
                 }
                 res = requests.get(url=self.detail_url,
-                                   headers=header, params=params)
+                                   headers=header, params=params, proxies=random.choice(self.proxy_pool))
                 try:
                     if str(res.status_code) != "200":
                         raise Exception
                 except:
                     # if the cookie is expired, let Selenium refresh the page to get a new one
+                    print(res.status_code)
                     self.refresh_cookies()
                     header = {
-                        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                        'User-Agent': self.ua.random,
                         'Sign': sign,
                         'Timestamp': t,
                         'Cookie': self.cookies
                     }
                     res = requests.get(url=self.detail_url,
-                                       headers=header, params=params)
+                                       headers=header, params=params, proxies=random.choice(self.proxy_pool))
                     if str(res.status_code) != "200":
                         # if it still fails, the programmer needs to check it out
+                        print(res.status_code)
                         print(res.text)
                         print(res.content.decode("utf-8"))
                         print(res.content)
@@ -163,7 +212,7 @@ class web_crawler_byRequests():
                     end = time.time()
                     print('company ' + str(i) +
                           ' finished. Time spent: ', end - start)
-                    # time.sleep(random.randint(1, 4))
+                    time.sleep(20)
         except Exception as e:
             print(e)
             self.output_in_log("Stops at " + "company " + str(i) + "\n")
@@ -176,7 +225,6 @@ class web_crawler_byRequests():
                                str(rear) + ", done\n")
 
     # get the search results (all the overview data from a certain database)
-
     def get_search_results(self, start_page, end_page, current_seq=None):
         # ensure the correct line number for each data
         if current_seq == None:
@@ -254,10 +302,31 @@ class web_crawler_byRequests():
                                str(end_page) + ", done\n")
 
 
+# -------------------------------------------------------------------------------------------------
+# 
+# Main method
+# 
+# -------------------------------------------------------------------------------------------------
+
+
 if __name__ == "__main__":
-    main_thread_start = time.time()
-    req = web_crawler_byRequests("医疗器械经营企业（许可）", '经营')
-    req.get_detail_page(0,100)
+    req = NMPA_scraper_byRequests("医疗器械经营企业（许可）", '经营')
+    url = 'http://icanhazip.com'
+    header = {
+        'User-Agent': req.ua.random
+    }
+    r = requests.get(url, headers=header)
+    print(r.text)
+    
+    
+    
+    
+    
+    
+    
+    # main_thread_start = time.time()
+    # req = web_scraper_byRequests("医疗器械经营企业（许可）", '经营')
+    # req.get_detail_page(0,100)
     # # multi-threads
     # tmp = 1
     # workload = [[1, 100], [10, 20], [20, 30], [30, 40]]
