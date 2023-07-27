@@ -8,7 +8,6 @@ Used for storing the data
 
 #!/usr/bin/python
 import psycopg2
-import time
 from datetime import datetime
 from data_saver_program.config import config
 

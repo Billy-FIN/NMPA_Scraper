@@ -7,7 +7,7 @@ Weakness: Don't make requests too frequently. The remote server may limit your I
 
 @Author: Qiuyang Wang
 @Email: billyfinnn@gmail.com
-@Date: 7/25/2023
+@Date: 7/27/2023
 '''
 
 
@@ -16,10 +16,12 @@ import time
 from urllib import parse
 import hashlib
 from selenium import webdriver
-import data_saver_program.data_saver as database
 import random
 import threading
 from fake_useragent import UserAgent
+import pyautogui
+import data_saver_program.data_saver as database
+
 
 class NMPA_scraper_byRequests():
     def __init__(self, itemId_name, search_key=''):
@@ -35,31 +37,32 @@ class NMPA_scraper_byRequests():
             "进口医疗器械（注册）": "ff808081830b103501838d4871b53543",
             "进口医疗器械（备案）": "ff808081830b103501838d49d7ce3572",
         }
+
         self.proxy_pool = [{'http': 'http://59.55.161.88:3256',
-                                 'https': 'https://59.55.161.88:3256'},
-                             {'http': 'http://103.37.141.69:80',
-                                 'https': 'https://103.37.141.69:80'},
-                             {'http': 'http://27.191.60.168:3256',
-                                 'https': 'https://27.191.60.168:3256'},
-                             {'http': 'http://124.205.153.36:80',
-                                 'https': 'https://124.205.153.36:80'},
-                             {'http': 'http://139.224.18.116:80',
-                                 'https': 'https://139.224.18.116:80'},
-                             {'http': 'http://60.191.11.241:3128',
-                                 'https': 'https://60.191.11.241:3128'},
-                             {'http': 'http://120.194.55.139:6969',
-                                 'https': 'https://120.194.55.139:6969'},
-                             {'http': 'http://175.7.199.222:3256',
-                                 'https': 'https://175.7.199.222:3256'},
-                             {'http': 'http://27.191.60.5:3256',
-                                 'https': 'https://27.191.60.5:3256'},
-                             {'http': 'http://121.4.36.93:8888',
-                                 'https': 'https://121.4.36.93:8888'}]
+                            'https': 'https://59.55.161.88:3256'},
+                           {'http': 'http://103.37.141.69:80',
+                            'https': 'https://103.37.141.69:80'},
+                           {'http': 'http://27.191.60.168:3256',
+                            'https': 'https://27.191.60.168:3256'},
+                           {'http': 'http://124.205.153.36:80',
+                            'https': 'https://124.205.153.36:80'},
+                           {'http': 'http://139.224.18.116:80',
+                            'https': 'https://139.224.18.116:80'},
+                           {'http': 'http://60.191.11.241:3128',
+                            'https': 'https://60.191.11.241:3128'},
+                           {'http': 'http://120.194.55.139:6969',
+                            'https': 'https://120.194.55.139:6969'},
+                           {'http': 'http://175.7.199.222:3256',
+                            'https': 'https://175.7.199.222:3256'},
+                           {'http': 'http://27.191.60.5:3256',
+                            'https': 'https://27.191.60.5:3256'},
+                           {'http': 'http://121.4.36.93:8888',
+                            'https': 'https://121.4.36.93:8888'}]
         self.itemId = self.itemId_list[itemId_name]
         self.search_key = search_key
         self.page_size = 20
         self.cookies = None
-        #self.db = database.data_saver()
+        self.db = database.data_saver()
         self.ua = UserAgent()
         # use selenium to get the cookie
         options = webdriver.FirefoxOptions()
@@ -71,20 +74,12 @@ class NMPA_scraper_byRequests():
 
 
 # -------------------------------------------------------------------------------------------------
-# 
-# Functions to ensure a successful operation
-# 
+#
+# Functions to ensure a successful operation 
+#
 # -------------------------------------------------------------------------------------------------
 
 
-    def get_proxy(self):
-        return requests.get("http://127.0.0.1:5010/get/").json()
-
-    def delete_proxy(self, proxy):
-        requests.get("http://127.0.0.1:5010/delete/?proxy={}".format(proxy))
-    
-    
-    
     # refresh the page opened by the selenium websriver
     # and then get the new cookie
     def refresh_cookies(self):
@@ -137,12 +132,14 @@ class NMPA_scraper_byRequests():
 
     # store search results in a database
     def search_results_save_in_db(self, seq, id, name, link):
-        self.db.insert_data(seq, id, name, link)
+        self.db.run_query(
+            "INSERT INTO " + self.db.table_name + " VALUES (%s,%s,%s,%s);", (seq, id, name, link), False)
 
     # store detailed info in a database
     def details_save_in_db(self, registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address, business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp):
-        self.db.insert_data(registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address,
-                            business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp)
+        self.db.run_query(
+            "INSERT INTO " + self.db.table_name + " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);", (registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address,
+                                                                                                  business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp), False)
 
     # output the progress while operating the program
     def output_in_log(self, s):
@@ -152,19 +149,21 @@ class NMPA_scraper_byRequests():
 
 
 # -------------------------------------------------------------------------------------------------
-# 
+#
 # Two functions to obtain data.
 #       One is for search results - overview: a lot of companys or other medical stuff
 #       The other is for detail page - detail infomation of each company or medical stuff
-# 
+#
 # -------------------------------------------------------------------------------------------------
 
 
     # get the detail information after having Ids
+    # !! Alert: the remote server has a strict rule in search of web scraping !!
     def get_detail_page(self, head, rear):
         try:
             for i in range(head, rear):
                 start = time.time()
+                # take out one id from the database
                 id = self.db.run_query(
                     "SELECT company_id FROM public.company_overview ORDER BY data_seq ASC limit 1 offset " + str(i), (), (True))[0]
                 t = self.get_timestamp()
@@ -181,11 +180,17 @@ class NMPA_scraper_byRequests():
                     'Cookie': self.cookies
                 }
                 res = requests.get(url=self.detail_url,
-                                   headers=header, params=params, proxies=random.choice(self.proxy_pool))
+                                   headers=header, params=params)#, proxies=random.choice(self.proxy_pool))
                 try:
-                    if str(res.status_code) != "200":
+                    # If your IP is restricted by the server, it will get a 400 error
+                    if str(res.status_code) == "400":
+                        raise RuntimeError
+                    elif str(res.status_code) != "200":
                         raise Exception
-                except:
+                except RuntimeError:
+                    print("Detected by the server!")
+                    pyautogui.alert("Alert")
+                except Exception:
                     # if the cookie is expired, let Selenium refresh the page to get a new one
                     print(res.status_code)
                     self.refresh_cookies()
@@ -196,14 +201,12 @@ class NMPA_scraper_byRequests():
                         'Cookie': self.cookies
                     }
                     res = requests.get(url=self.detail_url,
-                                       headers=header, params=params, proxies=random.choice(self.proxy_pool))
+                                       headers=header, params=params)#, proxies=random.choice(self.proxy_pool))
                     if str(res.status_code) != "200":
                         # if it still fails, the programmer needs to check it out
                         print(res.status_code)
-                        print(res.text)
-                        print(res.content.decode("utf-8"))
-                        print(res.content)
                         print('Fail!')
+                        pyautogui.alert("Alert")
                 finally:
                     # get the data successfully
                     d = res.json()['data']['detail']
@@ -212,7 +215,7 @@ class NMPA_scraper_byRequests():
                     end = time.time()
                     print('company ' + str(i) +
                           ' finished. Time spent: ', end - start)
-                    time.sleep(20)
+                    time.sleep(5)
         except Exception as e:
             print(e)
             self.output_in_log("Stops at " + "company " + str(i) + "\n")
@@ -225,6 +228,7 @@ class NMPA_scraper_byRequests():
                                str(rear) + ", done\n")
 
     # get the search results (all the overview data from a certain database)
+    # this server does not have a strict rule to restrict your ip
     def get_search_results(self, start_page, end_page, current_seq=None):
         # ensure the correct line number for each data
         if current_seq == None:
@@ -281,7 +285,7 @@ class NMPA_scraper_byRequests():
                     # get the data successfully
                     data = res.json()['data']['list']
                     for d in data:
-                        self.save_in_db(seq, d['f0'], d['f1'], d['f2'])
+                        self.search_results_save_in_db(seq, d['f0'], d['f1'], d['f2'])
                         seq += 1
                     end = time.time()
                     print('page ' + str(i) +
@@ -300,12 +304,13 @@ class NMPA_scraper_byRequests():
         else:
             self.output_in_log(str(start_page) + " to " +
                                str(end_page) + ", done\n")
+            print()
 
 
 # -------------------------------------------------------------------------------------------------
-# 
-# Main method
-# 
+#
+# Main method: multi-threads
+#
 # -------------------------------------------------------------------------------------------------
 
 
@@ -315,23 +320,20 @@ if __name__ == "__main__":
     header = {
         'User-Agent': req.ua.random
     }
-    r = requests.get(url, headers=header)
+    r = requests.get(url, headers=header,proxies={'http': 'http://217.113.122.142:3128',
+                            'https': 'https://217.113.122.142:3128'})
     print(r.text)
-    
-    
-    
-    
-    
-    
-    
     # main_thread_start = time.time()
-    # req = web_scraper_byRequests("医疗器械经营企业（许可）", '经营')
-    # req.get_detail_page(0,100)
-    # # multi-threads
+    # req = NMPA_scraper_byRequests("医疗器械经营企业（许可）", '经营')
+    # # req.get_detail_page(0, 100)
     # tmp = 1
-    # workload = [[1, 100], [10, 20], [20, 30], [30, 40]]
+    # workload = [[1, 10], [10, 20], [20, 30], [30, 40]]
     # thread_list = []
     # for task in workload:
+    #     # if want to get search results
+    #     #thread = threading.Thread(name="t" + str(tmp),
+    #     #                          target=req.get_search_results, args=(task[0], task[1],))
+    #     # if want to get detail pages
     #     thread = threading.Thread(name="t" + str(tmp),
     #                               target=req.get_detail_page, args=(task[0], task[1],))
     #     thread_list.append(thread)
