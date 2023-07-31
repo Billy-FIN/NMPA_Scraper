@@ -42,14 +42,7 @@ class detail_page_scraper():
         self.ua = UserAgent()
         self.cookies_pool = []
         self.driver_pool = []
-        self.proxy_pool = [{'http': 'http://zinroot:zryiyao3412@1.15.80.199:11388',
-                            'https': 'https://zinroot:zryiyao3412@1.15.80.199:11388'},
-                           {'http': 'http://zinroot:zryiyao3412@1.15.240.185:11388',
-                            'https': 'https://zinroot:zryiyao3412@1.15.240.185:11388'},
-                           {'http': 'http://zinroot:zryiyao3412@1.117.73.170:11388',
-                            'https': 'https://zinroot:zryiyao3412@1.117.73.170:11388'},
-                           {'http': 'http://zinroot:zryiyao3412@101.43.99.206:11388',
-                            'https': 'https://zinroot:zryiyao3412@101.43.99.206:11388'},
+        self.proxy_pool = [
                            ]
         # use default ip
         options = webdriver.FirefoxOptions()
