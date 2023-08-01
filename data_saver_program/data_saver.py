@@ -19,6 +19,7 @@ class data_saver():
             """
             CREATE TABLE IF NOT EXISTS "public"."detail_info" (
                 "data_seq" int,
+                "id" text,
 	            "registered_id" text,
                 "company_name" text,
 	            "legal_representative" text,

@@ -9,7 +9,7 @@ Weakness: Don't make requests too frequently. The remote server may limit your I
 
 @Author: Qiuyang Wang
 @Email: billyfinnn@gmail.com
-@Date: 7/31/2023
+@Date: 8/1/2023
 '''
 
 
@@ -43,7 +43,8 @@ class detail_page_scraper():
         self.cookies_pool = []
         self.driver_pool = []
         self.proxy_pool = [
-                           ]
+                        
+        ]
         # use default ip
         options = webdriver.FirefoxOptions()
         options.add_argument("--headless")
@@ -81,7 +82,6 @@ class detail_page_scraper():
         driver = self.driver_pool[index_of_proxy]
         driver.refresh()
         self.cookies_pool[index_of_proxy] = self.compose_cookies(driver.get_cookies())
-        print('\n' + 'Refreshing completed!\n')
 
     # used for getting a new cookie
     def compose_cookies(self, cookies):
@@ -126,14 +126,14 @@ class detail_page_scraper():
         return str(round(time.time()) * 1000)
 
     # store detailed info in a database
-    def details_save_in_db(self, data_seq, registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address, business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp):
+    def details_save_in_db(self, data_seq, id, registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address, business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp):
         self.db.run_query(
-            "INSERT INTO " + self.db.table_name + " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);", (data_seq, registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address,
-                                                                                                  business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp), False)
+            "INSERT INTO " + self.db.table_name + " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);", (data_seq, id, registered_id, company_name, legal_representative, person_in_charge_of_enterprise, residence_address,
+                                                                                                  business_address, business_mode, business_scope, storage_address, issue_department, issue_date, exp))
 
     # output the progress while operating the program
-    def output_in_log(self, s):
-        f = open('output.txt', 'a')
+    def output_in_log(self, file, s):
+        f = open('./log/' + file, 'a')
         f.write(s)
         f.close()
 
@@ -148,8 +148,14 @@ class detail_page_scraper():
     # get the detail information after having Ids
     # !! Alert: the remote server has a strict rule in search of web scraping !!
     def get_detail_page(self, head, rear, index_of_proxy):
+        count = 0
         try:
             for i in range(head, rear):
+                count+=1
+                # if (count % 50) == 0 and count != 0:
+                #     self.output_in_log("output.txt", "taking a nap...\n")
+                #     time.sleep(120)
+                #     self.output_in_log("output.txt", "Waking up...\n")            
                 start = time.time()
                 # take out one id from the database
                 id = self.db.run_query(
@@ -198,27 +204,22 @@ class detail_page_scraper():
                     # get the data successfully
                     d = res.json()['data']['detail']
                     try:
-                        self.details_save_in_db(str(i + 1), d['f0'], d['f1'], d['f2'], d['f3'], d['f4'],
+                        self.details_save_in_db(str(i + 1), id, d['f0'], d['f1'], d['f2'], d['f3'], d['f4'],
                                                 d['f5'], d['f6'], d['f7'], d['f8'], d['f9'], d['f10'], d['f11'])
                         end = time.time()
-                        print('company ' + str(i + 1) +
-                            ' finished. Time spent: ', end - start)
+                        print('company ' + str(i + 1) + ' finished. Time spent: ', end - start)
                     except KeyError as e:
-                        self.output_in_log("information lost: " + str(i + 1) + "\n")
-                        print(e)
+                        self.output_in_log("information_lost.txt", "information lost: " + str(i + 1) + str(e) + "\n")
                     time.sleep(5)
         except Exception as e:
             print(e)
-            print(res.status_code)
-            print(res.text)
-            self.output_in_log("Stops at " + "company " + str(i) + "\n")
+            self.output_in_log("output.txt", "Stops at " + "company " + str(i + 1) + "\n")
             time.sleep(120)
             # restart from where it stops
-            self.output_in_log("Resume...\n")
+            self.output_in_log("output.txt", "Resume...\n")
             self.get_detail_page(i, rear, index_of_proxy)
         else:
-            self.output_in_log(str(head) + " to " +
-                               str(rear) + ", done\n")
+            self.output_in_log("output.txt", str(head) + " to " + str(rear) + ", done\n")
 
 
 # -------------------------------------------------------------------------------------------------
@@ -232,7 +233,7 @@ if __name__ == "__main__":
     main_thread_start = time.time()
     spider = detail_page_scraper("医疗器械经营企业（许可）")
     tmp = 0
-    workload = [[0, 50], [50, 100], [100, 150], [150, 200], [200, 250]]
+    workload = [[0, 10000], [10000, 20000], [20000, 30000], [30000, 40000], [40000, 50000]]
     thread_list = []
     for task in workload:
         thread = threading.Thread(name="t" + str(tmp),
