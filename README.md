@@ -75,12 +75,12 @@ self.table_name = "detail_info"
 
 <span id="guidelines"></span>
 ## Guidelines
--operation  
+-**operation**  
 Please first run .\NMPA_search_results_by_requests.py to obtain Id and store them in your table. These Ids are instrumental to obtaining data on respective detailed pages while running .\NMPA_detail_page_by_requests.py
 
--resources  
+-**resources**  
 Important source code (used for JS reversing engineering) are stored in .\resources\important source code. Additionally, .\resources\NMPA_DATA.json has all itemIds. ItemId is the identification code to visit corresponding database. You can also change the itemId in the code and config of data_saver.py to extract data from different databases.
 
--log  
-Lost information caused by wrong Id can be found in ./log/information_lost.txt
+-**log**  
+Lost information caused by wrong Id can be found in ./log/information_lost.txt  
 Program operating output can be found in ./log/output.txt
