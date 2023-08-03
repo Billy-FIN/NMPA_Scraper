@@ -19,10 +19,11 @@ This web scraping project is designed to extract data and information from China
 
 <span id="config"></span>
 ## Config
-Three Python modules are necessary for running the code:
+Four Python modules are necessary for running the code:
 ```
 $ pip install requests
 $ pip install selenium
+$ pip install psycopg2
 $ pip install fake_useragent
 ```
 
