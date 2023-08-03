@@ -20,7 +20,6 @@ import hashlib
 from selenium import webdriver
 import threading
 from fake_useragent import UserAgent
-import pyautogui
 import data_saver_program.data_saver as database
 
 
@@ -183,7 +182,6 @@ class detail_page_scraper():
                         raise Exception
                 except RuntimeError:
                     print("Detected by the server!")
-                    pyautogui.alert("Alert")
                 except Exception:
                     # if the cookie is expired, let Selenium refresh the page to get a new one
                     self.refresh_cookies(index_of_proxy)
@@ -199,7 +197,6 @@ class detail_page_scraper():
                         # if it still fails, the programmer needs to check it out
                         print(res.status_code)
                         print('Fail!')
-                        pyautogui.alert("Alert")
                 finally:
                     # get the data successfully
                     d = res.json()['data']['detail']
