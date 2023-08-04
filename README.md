@@ -19,7 +19,8 @@ This web scraping project is designed to extract data and information from China
 
 <span id="config"></span>
 ## Config
-Four Python modules are necessary for running the code:
+Four Python modules are necessary for running the code:  
+There are more steps to ensure the good operation of Selenium. Please check the official documentation.
 ```
 $ pip install requests
 $ pip install selenium
@@ -57,9 +58,9 @@ self.table_name = "detail_info"
             CREATE TABLE IF NOT EXISTS "public"."detail_info" (
                 "data_seq" int,
                 "id" text,
-	            "registered_id" text,
+		"registered_id" text,
                 "company_name" text,
-	            "legal_representative" text,
+		"legal_representative" text,
                 "person_in_charge_of_enterprise" text,
                 "residence_address" text,
                 "business_address" text,
