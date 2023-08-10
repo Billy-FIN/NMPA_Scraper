@@ -44,7 +44,6 @@ Modify .\data_saver_program\config.py:
 Substitute the part after "filename=" with your absolute path of database.ini
 ```
 def config(filename='D:\CFDA_web_crawler\data_saver_program\database.ini', section='postgresql'):
-
 ```
 
 
