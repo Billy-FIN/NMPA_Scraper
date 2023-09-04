@@ -36,10 +36,10 @@ class data_saver():
             """
         )
         
-        # self.table_name = "company_overview_test"
+        # self.table_name = "company_overview"
         # commands = (
         #     """
-        #     CREATE TABLE IF NOT EXISTS "public"."company_overview_test" (
+        #     CREATE TABLE IF NOT EXISTS "public"."company_overview" (
         #         "data_seq" int,
 	    #         "registered_id" text,
         #         "company_name" text,

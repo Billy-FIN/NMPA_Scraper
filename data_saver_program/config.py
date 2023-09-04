@@ -2,7 +2,7 @@
 from configparser import ConfigParser
 
 
-def config(filename='D:\CFDA_web_crawler\data_saver_program\database.ini', section='postgresql'):
+def config(filename=r'D:\study\NMPA_Scraper\data_saver_program\database.ini', section='postgresql'):
     # create a parser
     parser = ConfigParser()
     # read config file

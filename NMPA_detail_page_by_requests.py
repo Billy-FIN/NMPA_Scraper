@@ -167,7 +167,7 @@ class detail_page_scraper():
                 }
                 sign = self.get_sign(params)
                 header = {
-                    'User-Agent': self.ua.random,
+                    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ",
                     'Sign': sign,
                     'Timestamp': t,
                     'Cookie': self.cookies_pool[index_of_proxy]
@@ -186,7 +186,7 @@ class detail_page_scraper():
                     # if the cookie is expired, let Selenium refresh the page to get a new one
                     self.refresh_cookies(index_of_proxy)
                     header = {
-                        'User-Agent': self.ua.random,
+                        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ",
                         'Sign': sign,
                         'Timestamp': t,
                         'Cookie': self.cookies_pool[index_of_proxy]

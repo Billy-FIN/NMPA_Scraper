@@ -9,7 +9,7 @@ Weakness: Don't make requests too frequently. The remote server may limit your I
 
 @Author: Qiuyang Wang
 @Email: billyfinnn@gmail.com
-@Date: 7/31/2023
+@Date: 9/4/2023
 '''
 
 
@@ -21,11 +21,13 @@ from selenium import webdriver
 import threading
 import random
 import data_saver_program.data_saver as database
+from fake_useragent import UserAgent
 
 
 class search_results_scraper():
     def __init__(self, itemId_name, search_key):
         # config
+        self.ua = UserAgent()
         self.url = 'https://www.nmpa.gov.cn/datasearch/data/nmpadata/search'
         self.itemId_list = {
             # other itemIds can be found in NMPA_DATA.json in the /resources
@@ -154,7 +156,7 @@ class search_results_scraper():
                 }
                 sign = self.get_sign(params)
                 header = {
-                    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ",
                     'Sign': sign,
                     'Timestamp': t,
                     'Cookie': self.cookies
@@ -168,7 +170,7 @@ class search_results_scraper():
                     # if the cookie is expired, let Selenium refresh the page to get a new one
                     self.refresh_cookies()
                     header = {
-                        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ",
                         'Sign': sign,
                         'Timestamp': t,
                         'Cookie': self.cookies
@@ -213,7 +215,7 @@ if __name__ == "__main__":
     main_thread_start = time.time()
     spider = search_results_scraper("医疗器械经营企业（许可）", "经营")
     tmp = 0
-    workload = [[1, 1001], [1001, 2001], [2001, 3001], [3001, 4001]]
+    workload = [[1, 1001], [1001, 2001], [2001, 3001]]
     thread_list = []
     for task in workload:
         thread = threading.Thread(name="t" + str(tmp),
